@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- App-internal cache. Used by share() / shareToInstagramStory() / shareToTikTok()
+         to expose temp images to other apps via content:// URIs. -->
+    <cache-path name="shared" path="shared/" />
+</paths>

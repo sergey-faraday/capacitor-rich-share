@@ -1,0 +1,85 @@
+{
+  "name": "capacitor-rich-share",
+  "version": "0.1.0",
+  "description": "Capacitor plugin for native-quality sharing — system share sheet with image+text, Save to Photos / Gallery, Instagram Story / TikTok deep-links, app-installed probes.",
+  "main": "dist/plugin.cjs.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/esm/index.d.ts",
+  "unpkg": "dist/plugin.js",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "import": "./dist/esm/index.js",
+      "require": "./dist/plugin.cjs.js",
+      "types": "./dist/esm/index.d.ts"
+    }
+  },
+  "files": [
+    "android/src/main/",
+    "android/build.gradle",
+    "dist/",
+    "ios/Sources",
+    "ios/Sources/**/*",
+    "CapacitorRichShare.podspec"
+  ],
+  "author": "Sergey Faraday",
+  "license": "MIT",
+  "homepage": "https://github.com/sergey-faraday/capacitor-rich-share",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sergey-faraday/capacitor-rich-share.git"
+  },
+  "bugs": {
+    "url": "https://github.com/sergey-faraday/capacitor-rich-share/issues"
+  },
+  "keywords": [
+    "capacitor",
+    "plugin",
+    "native",
+    "share",
+    "instagram",
+    "tiktok",
+    "ios",
+    "android",
+    "photos",
+    "mediastore"
+  ],
+  "scripts": {
+    "verify": "npm run build && npm run lint",
+    "lint": "npm run eslint && npm run prettier -- --check",
+    "fmt": "npm run eslint -- --fix && npm run prettier -- --write",
+    "eslint": "eslint . --ext ts",
+    "prettier": "prettier \"**/*.{css,html,ts,js,java}\"",
+    "build": "npm run clean && tsc && rollup -c rollup.config.mjs",
+    "clean": "rimraf ./dist",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "watch": "tsc --watch",
+    "prepublishOnly": "npm run build"
+  },
+  "capacitor": {
+    "ios": {
+      "src": "ios"
+    },
+    "android": {
+      "src": "android"
+    }
+  },
+  "peerDependencies": {
+    "@capacitor/core": ">=6.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/core": "^7.0.0",
+    "@ionic/eslint-config": "^0.4.0",
+    "@ionic/prettier-config": "^4.0.0",
+    "@rollup/plugin-node-resolve": "^15.3.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.3.3",
+    "prettier-plugin-java": "^2.6.4",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.24.0",
+    "typescript": "~5.6.0",
+    "vitest": "^2.1.0"
+  }
+}
