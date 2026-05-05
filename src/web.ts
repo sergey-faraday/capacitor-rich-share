@@ -1,6 +1,7 @@
 import { WebPlugin } from '@capacitor/core';
 
 import type {
+  CopyOptions,
   ImageInput,
   InstagramStoryOptions,
   IsAppInstalledOptions,
@@ -11,6 +12,8 @@ import type {
   SaveImageResult,
   ShareOptions,
   ShareResult,
+  ShareToOptions,
+  ShareToResult,
   TikTokShareOptions,
 } from './definitions';
 
@@ -146,6 +149,108 @@ export class RichShareWeb extends WebPlugin implements RichSharePlugin {
   /** Web has no notion of "another app installed" — always false. */
   async isAppInstalled(_options: IsAppInstalledOptions): Promise<IsAppInstalledResult> {
     return { installed: false };
+  }
+
+  /**
+   * Web fallback for shareTo() — opens each destination's web sharer URL
+   * in a new tab where one exists (X intent, WA wa.me, TG t.me/share,
+   * FB sharer, LinkedIn). Native-only destinations (IG/Snap Story,
+   * TikTok with image attachment) reject — UI should hide those buttons
+   * on web via `isAppInstalled` (which returns false everywhere on web).
+   */
+  async shareTo(options: ShareToOptions): Promise<ShareToResult> {
+    const open = (href: string) => {
+      if (typeof window !== 'undefined') window.open(href, '_blank');
+    };
+    const enc = encodeURIComponent;
+    const text = (options as any).text || '';
+    const url = (options as any).url || '';
+
+    switch (options.destination) {
+      case 'system':
+        await this.share({
+          title: options.title,
+          text: options.text,
+          url: options.url,
+          image: options.image,
+          filename: options.filename,
+        });
+        return { completed: true, destination: 'system' };
+
+      case 'twitter': {
+        const tags = options.hashtags?.length
+          ? `&hashtags=${enc(options.hashtags.join(','))}`
+          : '';
+        open(`https://x.com/intent/tweet?text=${enc(text)}&url=${enc(url)}${tags}`);
+        return { completed: true, destination: 'twitter' };
+      }
+
+      case 'whatsapp': {
+        const body = `${text}${url ? `\n${url}` : ''}`.trim();
+        const phone = options.phone ? `phone=${enc(options.phone)}&` : '';
+        open(`https://wa.me/?${phone}text=${enc(body)}`);
+        return { completed: true, destination: 'whatsapp' };
+      }
+
+      case 'telegram':
+        open(`https://t.me/share/url?url=${enc(url)}&text=${enc(text)}`);
+        return { completed: true, destination: 'telegram' };
+
+      case 'linkedin':
+        open(`https://www.linkedin.com/sharing/share-offsite/?url=${enc(url)}`);
+        return { completed: true, destination: 'linkedin' };
+
+      case 'sms':
+        open(`sms:${options.phone || ''}?body=${enc(text)}`);
+        return { completed: true, destination: 'sms' };
+
+      case 'email':
+        open(
+          `mailto:${options.to || ''}?subject=${enc(options.subject || '')}&body=${enc(options.body || '')}`,
+        );
+        return { completed: true, destination: 'email' };
+
+      case 'clipboard':
+        await this.copy({ text: options.text, image: options.image });
+        return { completed: true, destination: 'clipboard' };
+
+      // App-only destinations — no useful web equivalent
+      case 'instagram-story':
+      case 'instagram-feed':
+      case 'facebook-story':
+      case 'snapchat-story':
+      case 'tiktok':
+        throw this.unimplemented(
+          `shareTo({ destination: '${options.destination}' }) is native-only on web. Hide the button using isAppInstalled() (always false in browsers).`,
+        );
+
+      default:
+        throw this.unimplemented(`Unknown destination: ${(options as any).destination}`);
+    }
+  }
+
+  async copy(options: CopyOptions): Promise<void> {
+    if (typeof navigator === 'undefined' || !navigator.clipboard) {
+      throw new Error('Clipboard API unavailable');
+    }
+    if (options.image) {
+      try {
+        const dataUrl = imageToDataUrl(options.image);
+        const blob = await dataUrlToBlob(dataUrl);
+        const ClipboardItemCtor =
+          typeof window !== 'undefined' ? (window as any).ClipboardItem : undefined;
+        if (ClipboardItemCtor && (navigator.clipboard as any).write) {
+          const items = [new ClipboardItemCtor({ [blob.type || 'image/png']: blob })];
+          await (navigator.clipboard as any).write(items);
+          return;
+        }
+      } catch {
+        /* fall through to text-only */
+      }
+    }
+    if (options.text) {
+      await navigator.clipboard.writeText(options.text);
+    }
   }
 }
 

@@ -1,8 +1,11 @@
 package com.ocool.plugins.richshare;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
@@ -368,8 +371,10 @@ public class RichSharePlugin extends Plugin {
         switch (s) {
             case "instagram":
             case "instagram-stories":
+            case "instagram-feed":
                 return "com.instagram.android";
             case "snapchat":
+            case "snapchat-story":
                 return "com.snapchat.android";
             case "tiktok":
             case "snssdk1233":
@@ -379,12 +384,281 @@ public class RichSharePlugin extends Plugin {
             case "twitter":
             case "x":
                 return "com.twitter.android";
+            case "telegram":
+            case "tg":
+                return "org.telegram.messenger";
+            case "facebook":
+            case "facebook-stories":
+            case "facebook-story":
+            case "fb":
+                return "com.facebook.katana";
+            case "linkedin":
+                return "com.linkedin.android";
             default:
                 return null;
         }
     }
 
     // ─── helpers ───────────────────────────────────────────────────────
+
+    // ─── shareTo() — unified router ────────────────────────────────────
+
+    @PluginMethod
+    public void shareTo(PluginCall call) {
+        String destination = call.getString("destination");
+        if (destination == null) {
+            call.reject("shareTo() requires `destination`");
+            return;
+        }
+        switch (destination) {
+            case "system":            share(call); return;
+            case "instagram-story":   shareToInstagramStory(call); return;
+            case "facebook-story":    shareToFacebookStoryInternal(call); return;
+            case "snapchat-story":    shareToSnapchatInternal(call); return;
+            case "instagram-feed":    shareToInstagramFeedInternal(call); return;
+            case "tiktok":            shareToTikTok(call); return;
+            case "whatsapp":          openTargetedSend(call, "com.whatsapp", destination); return;
+            case "telegram":          openTargetedSend(call, "org.telegram.messenger", destination); return;
+            case "twitter":           openTargetedSend(call, "com.twitter.android", destination); return;
+            case "linkedin":          openTargetedSend(call, "com.linkedin.android", destination); return;
+            case "sms":               openSMS(call); return;
+            case "email":             openEmail(call); return;
+            case "clipboard":         copy(call); return;
+            default:
+                call.reject("Unknown destination: " + destination);
+        }
+    }
+
+    // ─── copy() ────────────────────────────────────────────────────────
+
+    @PluginMethod
+    public void copy(PluginCall call) {
+        String text = call.getString("text");
+        JSObject imageObj = call.getObject("image");
+        ClipboardManager cm = (ClipboardManager) getContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        if (cm == null) {
+            call.reject("Clipboard service unavailable");
+            return;
+        }
+
+        if (imageObj != null) {
+            Uri uri = writeImageToCacheUri(imageObj, "clip-" + UUID.randomUUID());
+            if (uri != null) {
+                ClipData clip = ClipData.newUri(getContext().getContentResolver(), "RichShare image", uri);
+                cm.setPrimaryClip(clip);
+                call.resolve();
+                return;
+            }
+        }
+        if (text != null) {
+            cm.setPrimaryClip(ClipData.newPlainText("RichShare", text));
+            call.resolve();
+            return;
+        }
+        call.reject("copy() requires text or image");
+    }
+
+    // ─── per-destination helpers ───────────────────────────────────────
+
+    /**
+     * Build an Intent.ACTION_SEND with optional image+text, target it at a
+     * specific package, fire it. Used for WhatsApp / Twitter / Telegram /
+     * LinkedIn — destinations whose intent flow is "system share but locked
+     * to one app".
+     */
+    private void openTargetedSend(PluginCall call, String packageName, String destination) {
+        String text = call.getString("text");
+        String url = call.getString("url");
+        JSObject imageObj = call.getObject("image");
+
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setPackage(packageName);
+        boolean hasImage = false;
+        if (imageObj != null) {
+            Uri uri = writeImageToCacheUri(imageObj, destination + "-" + UUID.randomUUID());
+            if (uri != null) {
+                intent.setType("image/png");
+                intent.putExtra(Intent.EXTRA_STREAM, uri);
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                getContext().grantUriPermission(packageName, uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                hasImage = true;
+            }
+        }
+        if (!hasImage) intent.setType("text/plain");
+
+        StringBuilder body = new StringBuilder();
+        if (text != null) body.append(text);
+        if (url != null) {
+            if (body.length() > 0) body.append("\n");
+            body.append(url);
+        }
+        if (body.length() > 0) intent.putExtra(Intent.EXTRA_TEXT, body.toString());
+
+        if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+            call.reject(destination + " is not installed");
+            return;
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        try {
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("completed", true);
+            ret.put("destination", destination);
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open " + destination + ": " + e.getMessage());
+        }
+    }
+
+    private void openSMS(PluginCall call) {
+        String text = call.getString("text", "");
+        String phone = call.getString("phone", "");
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(
+            "smsto:" + phone
+        ));
+        intent.putExtra("sms_body", text);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+            call.reject("No SMS app installed");
+            return;
+        }
+        try {
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("completed", true);
+            ret.put("destination", "sms");
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open SMS: " + e.getMessage());
+        }
+    }
+
+    private void openEmail(PluginCall call) {
+        String to = call.getString("to", "");
+        String subject = call.getString("subject", "");
+        String body = call.getString("body", "");
+        Intent intent = new Intent(Intent.ACTION_SENDTO, Uri.parse("mailto:" + to));
+        if (!subject.isEmpty()) intent.putExtra(Intent.EXTRA_SUBJECT, subject);
+        if (!body.isEmpty()) intent.putExtra(Intent.EXTRA_TEXT, body);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+            call.reject("No email app installed");
+            return;
+        }
+        try {
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("completed", true);
+            ret.put("destination", "email");
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open email: " + e.getMessage());
+        }
+    }
+
+    private void shareToFacebookStoryInternal(PluginCall call) {
+        JSObject stickerObj = call.getObject("stickerImage");
+        if (stickerObj == null) {
+            call.reject("facebook-story requires `stickerImage`");
+            return;
+        }
+        Uri stickerUri = writeImageToCacheUri(stickerObj, "fb-sticker-" + UUID.randomUUID());
+        if (stickerUri == null) {
+            call.reject("Failed to write sticker to cache");
+            return;
+        }
+        Intent intent = new Intent("com.facebook.stories.ADD_TO_STORY");
+        intent.setDataAndType(stickerUri, "image/png");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.putExtra("interactive_asset_uri", stickerUri);
+        String topColor = call.getString("backgroundTopColor");
+        String bottomColor = call.getString("backgroundBottomColor");
+        if (topColor != null) intent.putExtra("top_background_color", topColor);
+        if (bottomColor != null) intent.putExtra("bottom_background_color", bottomColor);
+        intent.setPackage("com.facebook.katana");
+
+        if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+            call.reject("Facebook is not installed");
+            return;
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().grantUriPermission("com.facebook.katana", stickerUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("completed", true);
+            ret.put("destination", "facebook-story");
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open Facebook: " + e.getMessage());
+        }
+    }
+
+    private void shareToSnapchatInternal(PluginCall call) {
+        JSObject stickerObj = call.getObject("stickerImage");
+        if (stickerObj == null) {
+            call.reject("snapchat-story requires `stickerImage`");
+            return;
+        }
+        Uri uri = writeImageToCacheUri(stickerObj, "snap-" + UUID.randomUUID());
+        if (uri == null) {
+            call.reject("Failed to write sticker to cache");
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("image/png");
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.setPackage("com.snapchat.android");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+            call.reject("Snapchat is not installed");
+            return;
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().grantUriPermission("com.snapchat.android", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("completed", true);
+            ret.put("destination", "snapchat-story");
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open Snapchat: " + e.getMessage());
+        }
+    }
+
+    private void shareToInstagramFeedInternal(PluginCall call) {
+        JSObject imageObj = call.getObject("image");
+        if (imageObj == null) {
+            call.reject("instagram-feed requires `image`");
+            return;
+        }
+        Uri uri = writeImageToCacheUri(imageObj, "ig-feed-" + UUID.randomUUID());
+        if (uri == null) {
+            call.reject("Failed to write image to cache");
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("image/png");
+        intent.putExtra(Intent.EXTRA_STREAM, uri);
+        intent.setPackage("com.instagram.android");
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        if (intent.resolveActivity(getContext().getPackageManager()) == null) {
+            call.reject("Instagram is not installed");
+            return;
+        }
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+        getContext().grantUriPermission("com.instagram.android", uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        try {
+            getContext().startActivity(intent);
+            JSObject ret = new JSObject();
+            ret.put("completed", true);
+            ret.put("destination", "instagram-feed");
+            call.resolve(ret);
+        } catch (Exception e) {
+            call.reject("Failed to open Instagram: " + e.getMessage());
+        }
+    }
 
     /** Decode a `dataUrl` or raw `base64` payload from JS. */
     private Bitmap decodeBitmap(JSObject imageObj) {

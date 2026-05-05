@@ -64,6 +64,27 @@ if ((await RichShare.isAppInstalled({ scheme: 'instagram' })).installed) {
 }
 ```
 
+## Unified destinations
+
+```ts
+// One call, any destination — type-safe per destination.
+await RichShare.shareTo({ destination: 'instagram-story', stickerImage: { dataUrl } });
+await RichShare.shareTo({ destination: 'whatsapp', text: 'check this out', url: 'https://nicoff.app' });
+await RichShare.shareTo({ destination: 'twitter', text: 'Day 30 nicotine-free', hashtags: ['nicoff', 'quit'] });
+await RichShare.shareTo({ destination: 'tiktok', image: { dataUrl } });
+await RichShare.shareTo({ destination: 'sms', text: 'I quit nicotine. You can too.' });
+await RichShare.shareTo({ destination: 'email', subject: 'My streak', body: 'Day 30!', to: 'friend@x.com' });
+await RichShare.shareTo({ destination: 'clipboard', text: 'https://nicoff.app' });
+await RichShare.shareTo({ destination: 'system', image: { dataUrl }, text: 'pick anywhere' });
+
+// Copy — first-class
+await RichShare.copy({ text: 'pasted in Notes', image: { dataUrl } });
+```
+
+12 destinations: `system`, `instagram-story`, `instagram-feed`, `facebook-story`,
+`snapchat-story`, `tiktok`, `whatsapp`, `telegram`, `twitter` (covers X),
+`linkedin`, `sms`, `email`, `clipboard`.
+
 ## API
 
 ### `share(options)` → `{ completed, activityType }`

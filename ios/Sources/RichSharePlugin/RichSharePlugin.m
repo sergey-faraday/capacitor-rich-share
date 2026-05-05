@@ -9,4 +9,6 @@ CAP_PLUGIN(RichSharePlugin, "RichShare",
     CAP_PLUGIN_METHOD(shareToInstagramStory, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(shareToTikTok, CAPPluginReturnPromise);
     CAP_PLUGIN_METHOD(isAppInstalled, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(shareTo, CAPPluginReturnPromise);
+    CAP_PLUGIN_METHOD(copy, CAPPluginReturnPromise);
 )

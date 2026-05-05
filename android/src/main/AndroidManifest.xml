@@ -5,13 +5,31 @@
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
         android:maxSdkVersion="28" />
 
-    <!-- Lets isAppInstalled() probe IG / TikTok / Snapchat / WhatsApp on Android 11+. -->
+    <!-- Lets isAppInstalled() probe major social apps on Android 11+ (package
+         visibility). Plus broad intent-based queries for the system share
+         sheet to enumerate destinations. -->
     <queries>
         <package android:name="com.instagram.android" />
         <package android:name="com.snapchat.android" />
         <package android:name="com.zhiliaoapp.musically" />
         <package android:name="com.whatsapp" />
+        <package android:name="com.whatsapp.w4b" />
         <package android:name="com.twitter.android" />
+        <package android:name="org.telegram.messenger" />
+        <package android:name="com.facebook.katana" />
+        <package android:name="com.linkedin.android" />
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="image/*" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SENDTO" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="smsto" />
+        </intent>
     </queries>
 
     <application>

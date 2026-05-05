@@ -99,6 +99,63 @@ export interface IsAppInstalledResult {
   installed: boolean;
 }
 
+// ─── shareTo() — unified destination router ──────────────────────────
+//
+// Discriminated union: each destination accepts only the fields that
+// destination supports. The native side picks the right URL scheme /
+// targeted Intent / pasteboard payload based on `destination`.
+
+export type ShareDestination =
+  | 'system'           // OS share sheet (same as share())
+  | 'instagram-story'
+  | 'instagram-feed'
+  | 'facebook-story'
+  | 'snapchat-story'
+  | 'tiktok'
+  | 'whatsapp'
+  | 'telegram'
+  | 'twitter'          // accepts X too
+  | 'linkedin'
+  | 'sms'
+  | 'email'
+  | 'clipboard';
+
+export type ShareToOptions =
+  | { destination: 'system'; text?: string; url?: string; image?: ImageInput; title?: string; filename?: string }
+  | ({ destination: 'instagram-story' } & InstagramStoryOptions)
+  | { destination: 'instagram-feed'; image: ImageInput }
+  | ({ destination: 'facebook-story' } & InstagramStoryOptions)  // FB Story uses the same sticker/background protocol as IG
+  | { destination: 'snapchat-story'; stickerImage: ImageInput; attachmentUrl?: string; sourceApplication?: string }
+  | { destination: 'tiktok'; image: ImageInput }
+  | { destination: 'whatsapp'; text?: string; url?: string; image?: ImageInput; phone?: string }
+  | { destination: 'telegram'; text?: string; url?: string; image?: ImageInput }
+  | { destination: 'twitter'; text?: string; url?: string; image?: ImageInput; hashtags?: string[] }
+  | { destination: 'linkedin'; text?: string; url?: string }
+  | { destination: 'sms'; text?: string; phone?: string; image?: ImageInput }
+  | { destination: 'email'; subject?: string; body?: string; to?: string; image?: ImageInput }
+  | { destination: 'clipboard'; text?: string; image?: ImageInput };
+
+export interface ShareToResult {
+  /** Did the share complete (or at least hand-off succeed)? */
+  completed: boolean;
+  /** Same destination string echoed back. */
+  destination: ShareDestination;
+}
+
+// ─── copy() — clipboard write convenience ────────────────────────────
+
+export interface CopyOptions {
+  /** Text to write to the clipboard. */
+  text?: string;
+  /**
+   * Optional image. iOS writes the image to `UIPasteboard.general` so it
+   * can be pasted into Photos/Notes/Mail. Android writes the image as a
+   * `text/uri-list` ClipData with a content:// URI from the FileProvider.
+   * Web copies the image as a Blob via `ClipboardItem` (Chrome/Safari 16+).
+   */
+  image?: ImageInput;
+}
+
 // ─── Plugin interface ────────────────────────────────────────────────
 
 export interface RichSharePlugin {
@@ -160,4 +217,31 @@ export interface RichSharePlugin {
    * in Info.plist or the call returns `false` regardless of installation.
    */
   isAppInstalled(options: IsAppInstalledOptions): Promise<IsAppInstalledResult>;
+
+  /**
+   * Unified destination router. Pick a `destination` and pass the fields
+   * that destination supports. Internally routes to the right native API:
+   *   · 'system'                    → UIActivityViewController / Intent.createChooser
+   *   · 'instagram-story'           → instagram-stories:// + UIPasteboard
+   *   · 'facebook-story'            → facebook-stories:// (same protocol as IG)
+   *   · 'snapchat-story'            → snapchat://creativekit/camera + UIPasteboard
+   *   · 'instagram-feed'            → Intent ADD_TO_FEED on Android, opens IG with image on iOS
+   *   · 'tiktok'                    → snssdk1233:// (saves to camera roll first on iOS)
+   *   · 'whatsapp'                  → whatsapp://send + temp file
+   *   · 'telegram'                  → tg://msg_url + temp file
+   *   · 'twitter'                   → twitter://post + intent
+   *   · 'linkedin'                  → linkedin://shareArticle (text+url only — no image)
+   *   · 'sms'                       → sms:?body=
+   *   · 'email'                     → mailto:?subject=&body=
+   *   · 'clipboard'                 → UIPasteboard / ClipboardManager
+   *
+   * Throws if the destination's app isn't installed (see `isAppInstalled`).
+   */
+  shareTo(options: ShareToOptions): Promise<ShareToResult>;
+
+  /**
+   * Copy text and/or image to the system clipboard. Convenience wrapper
+   * around the platform clipboard API.
+   */
+  copy(options: CopyOptions): Promise<void>;
 }

@@ -5,6 +5,66 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.0] – 2026-05-05
+
+### Added — unified destination router
+
+- **`shareTo({ destination, ... })`** — single entry point that routes to the
+  right native API based on `destination`. Discriminated union on the type
+  side: each destination accepts only the fields that destination supports.
+  Replaces the need for `if/else` chains across consumer code.
+
+  Supported destinations:
+  - `system` — OS share sheet (alias for `share()`)
+  - `instagram-story` — `instagram-stories://` + `UIPasteboard` / FileProvider
+  - `instagram-feed` — opens IG with image; iOS saves to camera roll first (no public deep-link to compose)
+  - `facebook-story` — `facebook-stories://` + `com.facebook.sharedSticker.*` pasteboard / `com.facebook.stories.ADD_TO_STORY` intent
+  - `snapchat-story` — `snapchat://creativekit/camera/1` + `com.snapchat.creativekit.*` pasteboard / package-targeted intent
+  - `tiktok` — `snssdk1233://` (saves to camera roll first on iOS) / `com.zhiliaoapp.musically` package
+  - `whatsapp` — `whatsapp://send?text=...` (iOS) / `com.whatsapp` package-targeted intent (Android). Routes image+text through the system sheet on iOS to avoid `whatsapp://` image-attachment quirks
+  - `telegram` — `tg://msg_url?url=...&text=...` / `org.telegram.messenger`
+  - `twitter` (also covers X) — `twitter://post?message=...&hashtags=...` with web-intent fallback / `com.twitter.android`
+  - `linkedin` — `linkedin://shareArticle?...` / `com.linkedin.android` (text+url only — no image deep-link)
+  - `sms` — `sms:?body=...` / `Intent.ACTION_VIEW` `smsto:`
+  - `email` — `mailto:?subject=...&body=...` / `Intent.ACTION_SENDTO` `mailto:`
+  - `clipboard` — `UIPasteboard.general` / `ClipboardManager.setPrimaryClip`
+
+- **`copy({ text?, image? })`** — first-class clipboard write. iOS uses
+  `UIPasteboard.setItems` with `public.utf8-plain-text` + `public.png`
+  payloads so the user can paste the image into Photos/Notes/Mail.
+  Android uses `ClipboardManager.setPrimaryClip` with a `text/uri-list`
+  ClipData when an image is provided. Web uses `ClipboardItem` (Chrome /
+  Safari 16+) for image+text.
+
+### Web fallback expanded
+
+The web build now opens each destination's web sharer URL where one exists:
+
+- `twitter` → `https://x.com/intent/tweet?text=...`
+- `whatsapp` → `https://wa.me/?text=...`
+- `telegram` → `https://t.me/share/url?url=...&text=...`
+- `linkedin` → `https://www.linkedin.com/sharing/share-offsite/?url=...`
+- `sms` / `email` → `sms:` / `mailto:` anchor href
+- `clipboard` → `navigator.clipboard.write` / `writeText`
+- `system` → `navigator.share` files-aware, then text-only, then clipboard
+
+App-only destinations (`instagram-story`, `facebook-story`, `snapchat-story`,
+`tiktok`, `instagram-feed`) reject on web — UI should hide those buttons via
+`isAppInstalled()` (returns `false` everywhere on web).
+
+### Android probe expansion
+
+`<queries>` block in the plugin's `AndroidManifest.xml` now includes Telegram
+(`org.telegram.messenger`), Facebook (`com.facebook.katana`), LinkedIn
+(`com.linkedin.android`), and WhatsApp Business (`com.whatsapp.w4b`), plus
+broad intent-action queries for `image/*` SEND, `mailto:` SENDTO, and
+`smsto:` VIEW so the system share sheet can enumerate destinations on
+Android 11+.
+
+`isAppInstalled()`'s scheme→package map covers all 12 supported destinations
+plus aliases (`fb` → Facebook, `x` → Twitter, `instagram-stories` →
+Instagram, etc.).
+
 ## [0.1.0] – 2026-05-05
 
 Initial release. Replaces a pile of half-working `@capacitor/share` glue
