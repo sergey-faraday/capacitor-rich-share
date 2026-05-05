@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] – 2026-05-05
+
+### Fixed
+
+- **No more `fetch()` on `data:` URLs** — the web fallback decoded image
+  inputs via `await (await fetch(dataUrl)).blob()`. While `data:` URLs
+  don't actually hit the network, npm registry scanners flagged the
+  package with a "Network access" alert. Replaced with manual `atob` +
+  `Uint8Array` decoding so the bundle contains no `fetch`/`globalThis`
+  references.
+
 ## [0.2.1] – 2026-05-05
 
 ### Fixed

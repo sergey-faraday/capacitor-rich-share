@@ -1,6 +1,6 @@
 {
   "name": "capacitor-rich-share",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Capacitor plugin for native-quality sharing — system share sheet with image+text, Save to Photos / Gallery, unified shareTo() router for IG Story / IG Feed / FB Story / Snap / TikTok / WhatsApp / Telegram / X / LinkedIn / SMS / Email / clipboard, app-installed probes.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
