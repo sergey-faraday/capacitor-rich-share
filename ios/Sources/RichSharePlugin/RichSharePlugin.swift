@@ -104,11 +104,11 @@ public class RichSharePlugin: CAPPlugin, CAPBridgedPlugin {
 
     // MARK: - permissions
 
-    @objc func checkPermissions(_ call: CAPPluginCall) {
+    @objc public override func checkPermissions(_ call: CAPPluginCall) {
         call.resolve(["photos": photosPermissionState()])
     }
 
-    @objc func requestPermissions(_ call: CAPPluginCall) {
+    @objc public override func requestPermissions(_ call: CAPPluginCall) {
         let current = PHPhotoLibrary.authorizationStatus(for: .addOnly)
         if current == .notDetermined {
             PHPhotoLibrary.requestAuthorization(for: .addOnly) { _ in

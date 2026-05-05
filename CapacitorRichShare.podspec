@@ -5,7 +5,8 @@ package = JSON.parse(File.read(File.join(__dir__, 'package.json')))
 Pod::Spec.new do |s|
   s.name = 'CapacitorRichShare'
   s.version = package['version']
-  s.summary = package['description']
+  s.summary = 'Native-quality Capacitor sharing: image+text sheet, Save to Photos/Gallery, deep-links to IG/FB/Snap/TikTok/WA/TG/X/LinkedIn.'
+  s.description = package['description']
   s.license = package['license']
   s.homepage = 'https://github.com/sergey-faraday/capacitor-rich-share'
   s.author = package['author']
