@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest a new destination, plugin method, or DX improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem are you trying to solve?
+      description: Describe the user-facing scenario, not the implementation.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed API or behavior
+      description: A rough sketch — TypeScript signature, example call, or destination mapping.
+      render: typescript
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: What you tried instead
+      description: Existing API workarounds you considered, why they fall short.
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - "New destination in shareTo()"
+        - "New plugin method"
+        - "Web fallback improvement"
+        - "iOS native behavior"
+        - "Android native behavior"
+        - "Documentation / examples"
+        - "Other"

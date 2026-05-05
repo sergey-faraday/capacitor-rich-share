@@ -122,7 +122,7 @@ export class RichShareWeb extends WebPlugin implements RichSharePlugin {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${options.filename || `nicoff-${Date.now()}`}.${ext}`;
+    a.download = `${options.filename || `share-${Date.now()}`}.${ext}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -178,9 +178,7 @@ export class RichShareWeb extends WebPlugin implements RichSharePlugin {
         return { completed: true, destination: 'system' };
 
       case 'twitter': {
-        const tags = options.hashtags?.length
-          ? `&hashtags=${enc(options.hashtags.join(','))}`
-          : '';
+        const tags = options.hashtags?.length ? `&hashtags=${enc(options.hashtags.join(','))}` : '';
         open(`https://x.com/intent/tweet?text=${enc(text)}&url=${enc(url)}${tags}`);
         return { completed: true, destination: 'twitter' };
       }
@@ -205,9 +203,7 @@ export class RichShareWeb extends WebPlugin implements RichSharePlugin {
         return { completed: true, destination: 'sms' };
 
       case 'email':
-        open(
-          `mailto:${options.to || ''}?subject=${enc(options.subject || '')}&body=${enc(options.body || '')}`,
-        );
+        open(`mailto:${options.to || ''}?subject=${enc(options.subject || '')}&body=${enc(options.body || '')}`);
         return { completed: true, destination: 'email' };
 
       case 'clipboard':
@@ -237,8 +233,7 @@ export class RichShareWeb extends WebPlugin implements RichSharePlugin {
       try {
         const dataUrl = imageToDataUrl(options.image);
         const blob = await dataUrlToBlob(dataUrl);
-        const ClipboardItemCtor =
-          typeof window !== 'undefined' ? (window as any).ClipboardItem : undefined;
+        const ClipboardItemCtor = typeof window !== 'undefined' ? (window as any).ClipboardItem : undefined;
         if (ClipboardItemCtor && (navigator.clipboard as any).write) {
           const items = [new ClipboardItemCtor({ [blob.type || 'image/png']: blob })];
           await (navigator.clipboard as any).write(items);

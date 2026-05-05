@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] – 2026-05-05
+
+### Fixed
+
+- **iOS SMS URL** — first-parameter delimiter was `&` (`sms:<phone>&body=...`),
+  which dropped the body on iOS 14+. Corrected to `sms:<phone>?body=...`.
+- **iOS WhatsApp `shareTo({ destination: 'whatsapp', image })`** — call
+  resolved when the share sheet *appeared*, not when the user picked or
+  cancelled. Switched to `completionWithItemsHandler` so callers see the
+  real `{ completed }` flag.
+- **Hardcoded defaults** — removed leftover `com.nicoff.app` /
+  `nicoff-<timestamp>` defaults in `sourceApplication` and `filename`.
+  iOS now falls back to `Bundle.main.bundleIdentifier`; Android to
+  `getContext().getPackageName()`; web filename defaults to
+  `share-<timestamp>`.
+
+### Changed
+
+- **Android namespace** — moved from `com.ocool.plugins.richshare` to
+  `com.sergeyfaraday.plugins.richshare` to match the rest of the
+  `sergeyfaraday/*` plugin family. No public API changes.
+- **Podspec** — `swift_version` bumped from `5.1` → `5.9`; source URL
+  uses `git+https://` form to match cocoapods conventions.
+- **README** — added missing `LSApplicationQueriesSchemes` entries
+  (`facebook-stories`, `tg`, `linkedin`) and full API documentation for
+  `shareTo()` and `copy()`, including a per-destination iOS/Android map.
+
+### Added
+
+- `.eslintrc.json` / `.prettierrc.json` (+ `.eslintignore` /
+  `.prettierignore`) so `npm run lint` and `npm run verify` actually run.
+- GitHub Actions CI (`web` lint+build, `ios` `pod lib lint`, `android`
+  `gradle assemble`).
+- Issue templates (bug report, feature request) + PR template.
+- `CONTRIBUTING.md`.
+
 ## [0.2.0] – 2026-05-05
 
 ### Added — unified destination router
@@ -68,7 +104,7 @@ Instagram, etc.).
 ## [0.1.0] – 2026-05-05
 
 Initial release. Replaces a pile of half-working `@capacitor/share` glue
-across NicOff with a single cross-cutting plugin.
+with a single cross-cutting plugin.
 
 ### Added
 

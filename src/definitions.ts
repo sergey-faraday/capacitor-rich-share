@@ -10,7 +10,7 @@
 // the data URL.
 
 export type ImageInput =
-  | { dataUrl: string }                    // "data:image/png;base64,iVBORw0KGgo..."
+  | { dataUrl: string } // "data:image/png;base64,iVBORw0KGgo..."
   | { base64: string; mimeType?: string }; // raw base64; mime defaults to image/png
 
 // ─── Plain "system share sheet" share ────────────────────────────────
@@ -106,7 +106,7 @@ export interface IsAppInstalledResult {
 // targeted Intent / pasteboard payload based on `destination`.
 
 export type ShareDestination =
-  | 'system'           // OS share sheet (same as share())
+  | 'system' // OS share sheet (same as share())
   | 'instagram-story'
   | 'instagram-feed'
   | 'facebook-story'
@@ -114,7 +114,7 @@ export type ShareDestination =
   | 'tiktok'
   | 'whatsapp'
   | 'telegram'
-  | 'twitter'          // accepts X too
+  | 'twitter' // accepts X too
   | 'linkedin'
   | 'sms'
   | 'email'
@@ -124,7 +124,7 @@ export type ShareToOptions =
   | { destination: 'system'; text?: string; url?: string; image?: ImageInput; title?: string; filename?: string }
   | ({ destination: 'instagram-story' } & InstagramStoryOptions)
   | { destination: 'instagram-feed'; image: ImageInput }
-  | ({ destination: 'facebook-story' } & InstagramStoryOptions)  // FB Story uses the same sticker/background protocol as IG
+  | ({ destination: 'facebook-story' } & InstagramStoryOptions) // FB Story uses the same sticker/background protocol as IG
   | { destination: 'snapchat-story'; stickerImage: ImageInput; attachmentUrl?: string; sourceApplication?: string }
   | { destination: 'tiktok'; image: ImageInput }
   | { destination: 'whatsapp'; text?: string; url?: string; image?: ImageInput; phone?: string }
@@ -165,8 +165,8 @@ export interface RichSharePlugin {
    * destination app receives both pieces.
    *
    * @example
-   * await RichShare.share({ text: 'Day 30 nicotine-free 🎉', url: 'https://nicoff.app' });
-   * await RichShare.share({ image: { dataUrl }, text: 'My streak', url: 'https://nicoff.app' });
+   * await RichShare.share({ text: 'Hello world', url: 'https://example.com' });
+   * await RichShare.share({ image: { dataUrl }, text: 'My latest creation', url: 'https://example.com' });
    */
   share(options: ShareOptions): Promise<ShareResult>;
 
@@ -176,7 +176,7 @@ export interface RichSharePlugin {
    * (no runtime permission needed); pre-29 requires `WRITE_EXTERNAL_STORAGE`.
    *
    * @example
-   * await RichShare.saveImage({ image: { dataUrl }, filename: 'nicoff-day-30', album: 'nicoff' });
+   * await RichShare.saveImage({ image: { dataUrl }, filename: 'my-image', album: 'MyApp' });
    */
   saveImage(options: SaveImageOptions): Promise<SaveImageResult>;
 

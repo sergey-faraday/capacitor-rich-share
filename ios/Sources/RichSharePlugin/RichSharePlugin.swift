@@ -139,7 +139,7 @@ public class RichSharePlugin: CAPPlugin, CAPBridgedPlugin {
         let bgImage = (call.getObject("backgroundImage") as [String: Any]?).flatMap(decodeImageInput)
         let topColor = call.getString("backgroundTopColor")
         let bottomColor = call.getString("backgroundBottomColor")
-        let sourceApp = call.getString("sourceApplication") ?? "com.nicoff.app"
+        let sourceApp = call.getString("sourceApplication") ?? (Bundle.main.bundleIdentifier ?? "")
 
         guard let scheme = URL(string: "instagram-stories://share?source_application=\(sourceApp)") else {
             call.reject("Could not build Instagram URL scheme")
@@ -419,15 +419,19 @@ public class RichSharePlugin: CAPPlugin, CAPBridgedPlugin {
            let fileURL = writeTempImage(img, filename: "wa-share") {
             DispatchQueue.main.async {
                 let activity = UIActivityViewController(activityItems: [fileURL, text], applicationActivities: nil)
-                activity.excludedActivityTypes = nil
+                activity.completionWithItemsHandler = { _, completed, _, error in
+                    if let error = error {
+                        call.reject("WhatsApp share error: \(error.localizedDescription)")
+                        return
+                    }
+                    call.resolve(["completed": completed, "destination": "whatsapp"])
+                }
                 if let popover = activity.popoverPresentationController, let view = self.bridge?.viewController?.view {
                     popover.sourceView = view
                     popover.sourceRect = CGRect(x: view.bounds.midX, y: view.bounds.midY, width: 0, height: 0)
                     popover.permittedArrowDirections = []
                 }
-                self.bridge?.viewController?.present(activity, animated: true) {
-                    call.resolve(["completed": true, "destination": "whatsapp"])
-                }
+                self.bridge?.viewController?.present(activity, animated: true, completion: nil)
             }
             return
         }
@@ -458,7 +462,9 @@ public class RichSharePlugin: CAPPlugin, CAPBridgedPlugin {
         let text = call.getString("text") ?? ""
         let phone = call.getString("phone") ?? ""
         let bodyEnc = text.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        let primary = "sms:\(phone)&body=\(bodyEnc)"
+        // iOS: first param uses '?' (e.g. sms:1234?body=...). Older snippets show '&'
+        // but that drops the body in iOS 14+.
+        let primary = "sms:\(phone)?body=\(bodyEnc)"
         openExternalURL(primary, scheme: "sms:", call: call, destinationKey: "sms")
     }
 

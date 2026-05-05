@@ -1,0 +1,79 @@
+name: Bug report
+description: Something isn't working as documented or expected
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Clear, concise description. Include the share call you made and what you expected vs. what occurred.
+      placeholder: |
+        Calling RichShare.shareTo({ destination: 'instagram-story', stickerImage: { dataUrl } }) on iPhone 15 produces a blank story.
+        Expected the sticker image to appear; got an empty Instagram canvas.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Smallest code snippet that reproduces the issue.
+      render: typescript
+      placeholder: |
+        const dataUrl = await blobToDataUrl(blob);
+        await RichShare.shareTo({ destination: 'instagram-story', stickerImage: { dataUrl } });
+    validations:
+      required: true
+
+  - type: input
+    id: device
+    attributes:
+      label: Device + OS
+      description: Hardware and OS version.
+      placeholder: "iPhone 15 Pro, iOS 18.1 / Pixel 8, Android 14"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: destination
+    attributes:
+      label: Destination (if applicable)
+      options:
+        - "system"
+        - "instagram-story"
+        - "instagram-feed"
+        - "facebook-story"
+        - "snapchat-story"
+        - "tiktok"
+        - "whatsapp"
+        - "telegram"
+        - "twitter (X)"
+        - "linkedin"
+        - "sms"
+        - "email"
+        - "clipboard"
+        - "saveImage"
+        - "share()"
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      placeholder: "0.2.1"
+    validations:
+      required: true
+
+  - type: input
+    id: capacitor-version
+    attributes:
+      label: Capacitor version
+      description: Output of `npx cap doctor` or your `@capacitor/core` version.
+      placeholder: "7.2.0"
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Stack traces, Info.plist `LSApplicationQueriesSchemes` entries, Xcode / Logcat output, screen recordings.

@@ -1,4 +1,4 @@
-package com.ocool.plugins.richshare;
+package com.sergeyfaraday.plugins.richshare;
 
 import android.Manifest;
 import android.content.ClipData;
@@ -16,9 +16,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.text.TextUtils;
 import android.util.Base64;
-
 import androidx.core.content.FileProvider;
-
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -26,7 +24,6 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.getcapacitor.annotation.Permission;
 import com.getcapacitor.annotation.PermissionCallback;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.OutputStream;
@@ -44,9 +41,7 @@ import java.util.UUID;
  */
 @CapacitorPlugin(
     name = "RichShare",
-    permissions = {
-        @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }, alias = "photos")
-    }
+    permissions = { @Permission(strings = { Manifest.permission.WRITE_EXTERNAL_STORAGE }, alias = "photos") }
 )
 public class RichSharePlugin extends Plugin {
 
@@ -113,7 +108,7 @@ public class RichSharePlugin extends Plugin {
             call.reject("saveImage() requires `image`");
             return;
         }
-        String filename = call.getString("filename", "nicoff-" + System.currentTimeMillis());
+        String filename = call.getString("filename", "share-" + System.currentTimeMillis());
         String album = call.getString("album");
 
         // Android 29+ — scoped storage, no runtime permission needed.
@@ -139,7 +134,7 @@ public class RichSharePlugin extends Plugin {
             return;
         }
         JSObject imageObj = call.getObject("image");
-        String filename = call.getString("filename", "nicoff-" + System.currentTimeMillis());
+        String filename = call.getString("filename", "share-" + System.currentTimeMillis());
         String album = call.getString("album");
         saveImageLegacy(call, imageObj, filename, album);
     }
@@ -155,9 +150,8 @@ public class RichSharePlugin extends Plugin {
             ContentValues values = new ContentValues();
             values.put(MediaStore.Images.Media.DISPLAY_NAME, filename + ".png");
             values.put(MediaStore.Images.Media.MIME_TYPE, "image/png");
-            String relativePath = album != null && !album.isEmpty()
-                ? Environment.DIRECTORY_PICTURES + "/" + album
-                : Environment.DIRECTORY_PICTURES;
+            String relativePath =
+                album != null && !album.isEmpty() ? Environment.DIRECTORY_PICTURES + "/" + album : Environment.DIRECTORY_PICTURES;
             values.put(MediaStore.Images.Media.RELATIVE_PATH, relativePath);
 
             ContentResolver resolver = getContext().getContentResolver();
@@ -247,9 +241,12 @@ public class RichSharePlugin extends Plugin {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return "granted";
         com.getcapacitor.PermissionState state = getPermissionState("photos");
         switch (state) {
-            case GRANTED: return "granted";
-            case DENIED:  return "denied";
-            default:      return "prompt";
+            case GRANTED:
+                return "granted";
+            case DENIED:
+                return "denied";
+            default:
+                return "prompt";
         }
     }
 
@@ -272,7 +269,8 @@ public class RichSharePlugin extends Plugin {
         intent.setDataAndType(stickerUri, "image/png");
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.putExtra("interactive_asset_uri", stickerUri);
-        intent.putExtra("source_application", call.getString("sourceApplication", "com.nicoff.app"));
+        String sourceApp = call.getString("sourceApplication", getContext().getPackageName());
+        intent.putExtra("source_application", sourceApp);
 
         // Optional background
         JSObject bgObj = call.getObject("backgroundImage");
@@ -411,19 +409,45 @@ public class RichSharePlugin extends Plugin {
             return;
         }
         switch (destination) {
-            case "system":            share(call); return;
-            case "instagram-story":   shareToInstagramStory(call); return;
-            case "facebook-story":    shareToFacebookStoryInternal(call); return;
-            case "snapchat-story":    shareToSnapchatInternal(call); return;
-            case "instagram-feed":    shareToInstagramFeedInternal(call); return;
-            case "tiktok":            shareToTikTok(call); return;
-            case "whatsapp":          openTargetedSend(call, "com.whatsapp", destination); return;
-            case "telegram":          openTargetedSend(call, "org.telegram.messenger", destination); return;
-            case "twitter":           openTargetedSend(call, "com.twitter.android", destination); return;
-            case "linkedin":          openTargetedSend(call, "com.linkedin.android", destination); return;
-            case "sms":               openSMS(call); return;
-            case "email":             openEmail(call); return;
-            case "clipboard":         copy(call); return;
+            case "system":
+                share(call);
+                return;
+            case "instagram-story":
+                shareToInstagramStory(call);
+                return;
+            case "facebook-story":
+                shareToFacebookStoryInternal(call);
+                return;
+            case "snapchat-story":
+                shareToSnapchatInternal(call);
+                return;
+            case "instagram-feed":
+                shareToInstagramFeedInternal(call);
+                return;
+            case "tiktok":
+                shareToTikTok(call);
+                return;
+            case "whatsapp":
+                openTargetedSend(call, "com.whatsapp", destination);
+                return;
+            case "telegram":
+                openTargetedSend(call, "org.telegram.messenger", destination);
+                return;
+            case "twitter":
+                openTargetedSend(call, "com.twitter.android", destination);
+                return;
+            case "linkedin":
+                openTargetedSend(call, "com.linkedin.android", destination);
+                return;
+            case "sms":
+                openSMS(call);
+                return;
+            case "email":
+                openEmail(call);
+                return;
+            case "clipboard":
+                copy(call);
+                return;
             default:
                 call.reject("Unknown destination: " + destination);
         }
@@ -513,9 +537,7 @@ public class RichSharePlugin extends Plugin {
     private void openSMS(PluginCall call) {
         String text = call.getString("text", "");
         String phone = call.getString("phone", "");
-        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(
-            "smsto:" + phone
-        ));
+        Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("smsto:" + phone));
         intent.putExtra("sms_body", text);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         if (intent.resolveActivity(getContext().getPackageManager()) == null) {

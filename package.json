@@ -1,6 +1,6 @@
 {
   "name": "capacitor-rich-share",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Capacitor plugin for native-quality sharing — system share sheet with image+text, Save to Photos / Gallery, unified shareTo() router for IG Story / IG Feed / FB Story / Snap / TikTok / WhatsApp / Telegram / X / LinkedIn / SMS / Email / clipboard, app-installed probes.",
   "main": "dist/plugin.cjs.js",
   "module": "dist/esm/index.js",
@@ -27,7 +27,7 @@
   "homepage": "https://github.com/sergey-faraday/capacitor-rich-share",
   "repository": {
     "type": "git",
-    "url": "https://github.com/sergey-faraday/capacitor-rich-share.git"
+    "url": "git+https://github.com/sergey-faraday/capacitor-rich-share.git"
   },
   "bugs": {
     "url": "https://github.com/sergey-faraday/capacitor-rich-share/issues"

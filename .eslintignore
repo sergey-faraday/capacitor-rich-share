@@ -1,0 +1,7 @@
+dist/
+coverage/
+node_modules/
+*.config.js
+*.config.mjs
+*.config.ts
+scripts/
